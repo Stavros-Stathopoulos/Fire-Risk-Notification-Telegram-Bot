@@ -1,0 +1,17 @@
+services:
+  firemap:
+    build: .
+    container_name: firemap
+    env_file: .env  # secrets live here, never in this file or the image
+    environment:
+      TZ: Europe/Athens
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
