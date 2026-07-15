@@ -18,6 +18,8 @@ All you need is a `.env` file (step 3 above):
 
 ```bash
 docker pull ghcr.io/stavros-stathopoulos/fire-risk-notification-telegram-bot:latest
+mkdir -p data logs
+sudo chown -R 1000:1000 data logs   # the container writes as uid 1000 (appuser)
 docker run -d --name firemap \
   --env-file .env \
   -e TZ=Europe/Athens \

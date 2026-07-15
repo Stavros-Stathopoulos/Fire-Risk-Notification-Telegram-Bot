@@ -59,12 +59,23 @@ def setup_logging() -> None:
     )
     root.addHandler(console)
 
-    config.LOG_DIR.mkdir(parents=True, exist_ok=True)
-    jsonl = TimedRotatingFileHandler(
-        config.LOG_DIR / "actions.jsonl",
-        when="midnight",
-        backupCount=config.LOG_RETENTION_DAYS - 1,  # current file + backups = a week
-        encoding="utf-8",
-    )
-    jsonl.setFormatter(JsonlFormatter())
-    root.addHandler(jsonl)
+    # An unwritable log dir (e.g. a root-owned bind mount) must not take the
+    # whole bot down — fall back to console-only logging and say so loudly.
+    try:
+        config.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        jsonl = TimedRotatingFileHandler(
+            config.LOG_DIR / "actions.jsonl",
+            when="midnight",
+            backupCount=config.LOG_RETENTION_DAYS - 1,  # current file + backups = a week
+            encoding="utf-8",
+        )
+        jsonl.setFormatter(JsonlFormatter())
+        root.addHandler(jsonl)
+    except OSError as exc:
+        root.error(
+            "Cannot write JSONL log to %s (%s) — continuing with console "
+            "logging only. If this is a Docker bind mount, fix ownership on "
+            "the host: sudo chown -R 1000:1000 logs data",
+            config.LOG_DIR,
+            exc,
+        )

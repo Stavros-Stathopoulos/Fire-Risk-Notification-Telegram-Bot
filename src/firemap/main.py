@@ -50,7 +50,7 @@ def startup_check() -> None:
                     extra={"action": "startup.success", "map_date": str(day)},
                 )
                 return
-            except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as exc:
+            except (requests.RequestException, OSError) as exc:
                 log.warning(
                     "Startup fetch for %s failed (%s)",
                     day,
@@ -89,7 +89,7 @@ def fetch_and_send() -> None:
                 extra={"action": "run.success", "attempt": attempt, "file": path.name},
             )
             return
-        except (requests.HTTPError, requests.ConnectionError, requests.Timeout) as exc:
+        except (requests.RequestException, OSError) as exc:
             log.warning(
                 "Attempt %d/%d failed (%s)",
                 attempt,
