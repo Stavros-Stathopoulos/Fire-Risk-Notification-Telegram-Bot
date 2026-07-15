@@ -10,11 +10,14 @@ Setup (one time):
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 import requests
 
-import config
+from firemap import config
+
+log = logging.getLogger("firemap.notifier")
 
 
 class TelegramNotifier:
@@ -42,6 +45,15 @@ class TelegramNotifier:
                 timeout=config.REQUEST_TIMEOUT,
             )
             response.raise_for_status()
+            log.info(
+                "Sent text message to chat %s",
+                chat_id,
+                extra={
+                    "action": "notify.message_sent",
+                    "chat_id": chat_id,
+                    "status_code": response.status_code,
+                },
+            )
 
     def send_map(self, image_path: str | Path, caption: str | None = None) -> None:
         """Send the image at image_path as a photo to every configured chat."""
@@ -58,10 +70,21 @@ class TelegramNotifier:
                     timeout=config.REQUEST_TIMEOUT,
                 )
             response.raise_for_status()
+            log.info(
+                "Sent map photo to chat %s",
+                chat_id,
+                extra={
+                    "action": "notify.map_sent",
+                    "chat_id": chat_id,
+                    "file": str(image_path),
+                    "caption": caption,
+                    "status_code": response.status_code,
+                },
+            )
 
 
-if __name__ == "__main__":
-    from fetch import fetch_daily_image
+if __name__ == "__main__":  # run with: python -m firemap.notifier
+    from firemap.fetch import fetch_daily_image
 
     path = fetch_daily_image()
     TelegramNotifier().send_map(path)

@@ -1,0 +1,23 @@
+# Run from the repo root: docker compose -f docker/docker-compose.yml up -d --build
+services:
+  firemap:
+    # Published image; `docker compose ... up -d --build` rebuilds locally instead.
+    image: ghcr.io/stavros-stathopoulos/fire-risk-notification-telegram-bot:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: firemap
+    env_file: ../.env  # secrets live here, never in this file or the image
+    environment:
+      TZ: Europe/Athens
+    volumes:
+      - ../data:/app/data
+      - ../logs:/app/logs
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

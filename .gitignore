@@ -4,7 +4,12 @@
 # Downloaded maps
 data/
 
+# JSONL action logs
+logs/
+
 # Python
 __pycache__/
 *.pyc
 .venv/
+*.egg-info/
+build/

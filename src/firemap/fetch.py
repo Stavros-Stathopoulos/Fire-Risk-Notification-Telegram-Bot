@@ -9,12 +9,15 @@ target date is tomorrow.
 
 from __future__ import annotations
 
+import logging
 from datetime import date, timedelta
 from pathlib import Path
 
 import requests
 
-import config
+from firemap import config
+
+log = logging.getLogger("firemap.fetch")
 
 
 def tomorrow() -> date:
@@ -35,6 +38,11 @@ def fetch_daily_image(day: date | None = None) -> Path:
     day = day or tomorrow()
     url = build_url(day)
 
+    log.info(
+        "Fetching fire-risk map for %s",
+        day,
+        extra={"action": "fetch.start", "target_date": str(day), "url": url},
+    )
     response = requests.get(
         url,
         headers={"User-Agent": config.USER_AGENT},
@@ -45,10 +53,45 @@ def fetch_daily_image(day: date | None = None) -> Path:
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     dest = config.DATA_DIR / f"{day:%Y-%m-%d}.jpg"
     dest.write_bytes(response.content)
+    log.info(
+        "Saved map to %s",
+        dest,
+        extra={
+            "action": "fetch.saved",
+            "target_date": str(day),
+            "url": url,
+            "file": str(dest),
+            "bytes": len(response.content),
+            "status_code": response.status_code,
+        },
+    )
     return dest
 
 
-if __name__ == "__main__":
+def cleanup_old_maps() -> None:
+    """Delete maps whose date (the YYYY-MM-DD filename) is older than
+    config.MAP_RETENTION_DAYS days."""
+    cutoff = date.today() - timedelta(days=config.MAP_RETENTION_DAYS)
+    for path in sorted(config.DATA_DIR.glob("*.jpg")):
+        try:
+            day = date.fromisoformat(path.stem)
+        except ValueError:
+            continue  # not one of our maps, leave it alone
+        if day < cutoff:
+            path.unlink()
+            log.info(
+                "Deleted old map %s",
+                path.name,
+                extra={
+                    "action": "cleanup.deleted",
+                    "file": str(path),
+                    "map_date": str(day),
+                    "retention_days": config.MAP_RETENTION_DAYS,
+                },
+            )
+
+
+if __name__ == "__main__":  # run with: python -m firemap.fetch
     try:
         path = fetch_daily_image()
         print(f"Saved {path}")
